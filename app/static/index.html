@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyExplain — AI Python Video Explainer</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="topnav">
+  <div class="brand"><span class="logo">🐍</span><div><b>PyExplain</b><span class="tag">turn Python into a video</span></div></div>
+  <button class="btn ghost sm" id="gear">⚙ Setup</button>
+</header>
+
+<main class="layout">
+  <!-- ============ LEFT ============ -->
+  <section class="controls">
+
+    <!-- one-time setup (auto-shows if keys are missing) -->
+    <div class="card setup" id="setup" style="display:none">
+      <div class="card-h"><span class="step-n">★</span><h2>One-time setup</h2></div>
+      <p class="muted sm" style="margin:-6px 0 14px">Enter your keys once. They're saved on your computer and never shown again.</p>
+      <label class="field">
+        <span>Claude API key <span class="muted">— writes the video script</span></span>
+        <input id="anthropic-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>ElevenLabs API key <span class="muted">— the voiceover</span></span>
+        <input id="eleven-key" type="password" placeholder="sk_…" autocomplete="off">
+      </label>
+      <div class="row"><button class="btn primary" id="save-keys">Save & continue</button>
+        <span id="setup-msg" class="muted sm"></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><span class="step-n">1</span><h2>Your Python code</h2></div>
+      <div class="editor">
+        <div class="gutter" id="gutter"></div>
+        <textarea id="code" spellcheck="false" placeholder="# Paste your Python here…"></textarea>
+      </div>
+      <div class="row"><button class="btn ghost sm" id="sample-btn">↺ Load example</button>
+        <span class="muted sm" id="code-stat"></span></div>
+    </div>
+
+    <details class="card customize" id="customize">
+      <summary><span class="step-n">2</span><h2>Describe the video <span class="muted">(optional)</span></h2><span class="chev">▾</span></summary>
+      <div class="cust-body">
+        <textarea id="brief" spellcheck="false" placeholder="Optional: who's it for, the tone, the length, and what to emphasize. Leave blank for a warm, beginner-friendly walkthrough that explains every line."></textarea>
+        <div class="hint">Tip: you can paste a full director's brief here — audience, scene structure, concepts to cover, visual metaphors, a pause-and-predict moment, a closing challenge, etc.</div>
+        <div class="cust-row">
+          <label class="mini">Length
+            <select id="length">
+              <option value="120">~2 min</option>
+              <option value="180">~3 min</option>
+              <option value="240" selected>~4 min</option>
+              <option value="300">~5 min</option>
+            </select>
+          </label>
+          <label class="mini">Style
+            <select id="style">
+              <option value="cartoon">Vivid (dark + purple)</option>
+              <option value="neon">Neon</option>
+              <option value="classroom">Studio Light</option>
+              <option value="minimal">Mono</option>
+            </select>
+          </label>
+          <label class="mini">Voice
+            <select id="voice"><option value="">Default (Sarah)</option></select>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <button class="btn primary big create" id="create-btn">✨ Create Video</button>
+    <div id="err" class="err" style="display:none"></div>
+  </section>
+
+  <!-- ============ RIGHT ============ -->
+  <section class="stage-col">
+    <div class="preview-card">
+      <div class="preview-frame">
+        <iframe id="stage" src="/static/player.html" title="preview"></iframe>
+        <div id="stage-empty" class="stage-empty">
+          <div class="big-emoji">🎬</div>
+          <h3>Your video appears here</h3>
+          <p class="muted">Paste code and press <b>Create Video</b>. You'll see a live preview while the final MP4 renders.</p>
+        </div>
+      </div>
+      <div class="transport" id="transport" style="display:none">
+        <button class="btn round" id="play-btn">▶</button>
+        <button class="btn round ghost" id="restart-btn">↺</button>
+        <input type="range" id="scrub" min="0" max="1000" value="0">
+        <span class="time" id="time">0:00 / 0:00</span>
+      </div>
+    </div>
+
+    <div id="job" class="job" style="display:none">
+      <div class="job-h"><b id="job-title">Working…</b><span id="job-pct" class="muted"></span></div>
+      <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+      <div id="job-sub" class="muted sm"></div>
+    </div>
+
+    <div id="result" class="result" style="display:none">
+      <div class="result-h">✅ <b>Your video is ready!</b></div>
+      <video id="result-video" controls></video>
+      <a id="download" class="btn accent big" download>⬇ Download MP4</a>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

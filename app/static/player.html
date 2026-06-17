@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyExplain — Stage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Authored at 1920x1080, scaled to fit. Regions are absolutely positioned
+     and MORPH between per-scene layouts, so the composition changes with the
+     explanation. Everything is a pure function of the global clock (so the
+     exported MP4 matches the preview exactly). */
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#07080c;overflow:hidden;}
+  #fit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  #stage{width:1920px;height:1080px;position:relative;overflow:hidden;transform-origin:center center;
+    font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--bg);}
+
+  #bg{position:absolute;inset:0;z-index:0;overflow:hidden;}
+  .orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:var(--orb-op,.45);will-change:transform;}
+
+  /* top bar */
+  #top{position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;padding:0 60px;z-index:8;}
+  #brand{display:flex;align-items:center;gap:13px;font-weight:800;font-size:26px;color:var(--ink);opacity:.92;}
+  #brand .d{width:13px;height:13px;border-radius:50%;background:var(--accent);}
+  #badge{margin-left:auto;font-weight:700;font-size:19px;letter-spacing:2.5px;padding:9px 20px;border-radius:10px;
+    background:var(--accent-soft);color:var(--accent-strong);white-space:nowrap;opacity:0;will-change:opacity,transform;}
+  #prog{position:absolute;left:60px;right:60px;bottom:12px;height:5px;border-radius:999px;background:var(--track);z-index:8;}
+  #prog>div{height:100%;width:0;border-radius:999px;background:var(--accent);}
+
+  /* generic region */
+  .region{position:absolute;z-index:3;will-change:transform,opacity;}
+
+  /* code card */
+  #rcode{display:flex;flex-direction:column;border-radius:18px;background:var(--code-bg);border:var(--card-border);
+    box-shadow:var(--shadow);overflow:hidden;}
+  #code-head{height:50px;flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:0 20px;border-bottom:1px solid var(--hair);}
+  .dot{width:13px;height:13px;border-radius:50%;}.dot.r{background:#ff5f57;}.dot.y{background:#febc2e;}.dot.g{background:#28c840;}
+  #file{margin-left:9px;font-size:16px;color:var(--muted);font-weight:500;font-family:'JetBrains Mono',monospace;}
+  #code-view{position:relative;flex:1 1 auto;overflow:hidden;}
+  #cam{position:absolute;inset:0;transform-origin:center top;will-change:transform;}
+  #lines{position:absolute;left:0;right:0;top:0;padding:22px 0;font-family:'JetBrains Mono',monospace;font-size:26px;
+    font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0;}
+  #hl{position:absolute;top:0;left:14px;right:16px;border-radius:10px;background:var(--spot);box-shadow:var(--spot-shadow);
+    opacity:0;will-change:transform,height;}
+  .cl{display:flex;align-items:flex-start;padding:4px 28px;line-height:1.55;position:relative;z-index:1;will-change:opacity;}
+  .cl .ln{width:40px;flex:0 0 auto;text-align:right;padding-right:22px;color:var(--lineno);user-select:none;font-variant-numeric:tabular-nums;}
+  .cl .code{white-space:pre;flex:1 1 auto;}
+  .tk-kw{color:var(--t-kw);font-weight:700;}.tk-str{color:var(--t-str);}.tk-num{color:var(--t-num);}
+  .tk-com{color:var(--t-com);font-style:italic;}.tk-fn{color:var(--t-fn);}.tk-bi{color:var(--t-bi);}
+  .tk-op{color:var(--t-op);}.tk-def{color:var(--t-def);font-weight:700;}
+  .caret{display:inline-block;width:11px;background:var(--accent);margin-left:2px;border-radius:2px;}
+
+  /* visual region */
+  #rvis{border-radius:18px;background:var(--panel);border:var(--card-border);box-shadow:var(--shadow);overflow:hidden;}
+  #vtitle{position:absolute;top:22px;left:30px;right:30px;font-size:18px;font-weight:700;letter-spacing:2px;
+    text-transform:uppercase;color:var(--muted);z-index:2;}
+  #vcanvas{position:absolute;inset:0;}
+  #vcanvas svg{position:absolute;inset:0;width:100%;height:100%;}
+  .vlabel{position:absolute;font-weight:700;will-change:transform,opacity;}
+
+  /* headline region (kinetic titles & big-idea statements) */
+  #rhead{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;}
+  #rhead .kick{font-size:26px;letter-spacing:6px;text-transform:uppercase;color:var(--accent-strong);font-weight:800;}
+  #rhead .emoji{font-size:88px;}
+  #rhead .big{font-size:96px;line-height:1.05;font-weight:900;color:var(--ink);letter-spacing:-1.5px;}
+  #rhead .big .w,#rhead .stmt .w{display:inline-block;will-change:transform,opacity;}
+  #rhead .sub{font-size:34px;color:var(--muted);font-weight:600;}
+  #rhead .stmt{font-size:62px;line-height:1.15;font-weight:800;color:var(--ink);letter-spacing:-1px;max-width:1400px;}
+  #rhead .stmt b{color:var(--accent-strong);}
+
+  /* lower-third caption (smaller, refined) */
+  #cap{position:absolute;left:60px;right:60px;bottom:48px;z-index:7;display:flex;align-items:center;
+    border-radius:18px;padding:20px 28px;background:var(--cap-bg);border:var(--cap-border);box-shadow:var(--shadow);backdrop-filter:blur(10px);}
+  #cap .av{width:66px;height:66px;flex:0 0 auto;border-radius:50%;margin-right:22px;display:flex;align-items:center;justify-content:center;
+    font-size:34px;background:var(--accent-soft);}
+  #captx{font-size:25px;line-height:1.42;font-weight:500;color:var(--ink);}
+  #captx .w{display:inline-block;opacity:.32;transform-origin:center bottom;will-change:transform,opacity;}
+  #captx .w.on{opacity:1;}
+
+  .confetti{position:absolute;width:16px;height:26px;border-radius:3px;top:-40px;}
+</style>
+</head>
+<body>
+  <div id="fit"><div id="stage">
+    <div id="bg"></div>
+    <div id="top"><div id="brand"><span class="d"></span><span id="brand-t">PyExplain</span></div><div id="badge">STEP</div></div>
+
+    <div class="region" id="rcode">
+      <div id="code-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span id="file">program.py</span></div>
+      <div id="code-view"><div id="cam"><div id="lines"><div id="hl"></div></div></div></div>
+    </div>
+
+    <div class="region" id="rvis"><div id="vtitle"></div><div id="vcanvas"></div></div>
+
+    <div class="region" id="rhead"></div>
+
+    <svg id="connector" viewBox="0 0 1920 1080" preserveAspectRatio="none"
+      style="position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;overflow:visible">
+      <defs><marker id="cArrow" markerWidth="12" markerHeight="12" refX="8" refY="4" orient="auto">
+        <path d="M0 0 L8 4 L0 8 Z" fill="var(--accent)"></path></marker></defs>
+      <path id="cPath" fill="none" stroke="var(--accent)" stroke-width="4"
+        stroke-linecap="round" marker-end="url(#cArrow)" stroke-dasharray="1000" stroke-dashoffset="1000"></path>
+    </svg>
+
+    <div id="cap"><div class="av">🤖</div><div id="captx"></div></div>
+    <div id="prog"><div></div></div>
+  </div></div>
+
+<script src="engine.js"></script>
+<script>
+  (function(){
+    function boot(s,o){ window.__engine=new Engine(document.getElementById('stage'), s, o||{}); }
+    window.bootEngine=boot;
+    if(window.SCENE_SCRIPT) boot(window.SCENE_SCRIPT, window.SCENE_OPTS||{});
+    window.addEventListener('message',function(e){
+      if(e.data&&e.data.type==='load-script') boot(e.data.script, e.data.opts||{});
+      if(e.data&&e.data.type==='control'&&window.__engine) window.__engine.control(e.data.action, e.data.value);
+    });
+    function resize(){ var st=document.getElementById('stage');
+      st.style.transform='scale('+Math.min(innerWidth/1920, innerHeight/1080)+')'; }
+    addEventListener('resize',resize); resize();
+  })();
+</script>
+</body>
+</html>
