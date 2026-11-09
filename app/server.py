@@ -14,6 +14,7 @@ Jobs run on background threads; the UI polls GET /api/job/{id}.
 from __future__ import annotations
 
 import os
+import re
 import sys
 import threading
 import time
@@ -46,6 +47,16 @@ app = FastAPI(title="Python Code Explainer")
 # in-memory job registry
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
+
+
+_JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def _check_job_id(jid: str) -> str:
+    """Job ids become directory names, so only accept plain tokens."""
+    if not _JOB_ID_RE.match(jid or ""):
+        raise HTTPException(400, "bad job id")
+    return jid
 
 
 def _set_job(jid: str, **kw):
@@ -121,6 +132,7 @@ def index():
 
 @app.get("/api/jobs/{jid}/audio/{name}")
 def job_audio(jid: str, name: str):
+    _check_job_id(jid)
     if not name.endswith(".mp3") or "/" in name or ".." in name:
         raise HTTPException(400, "bad name")
     path = os.path.join(JOBS_ROOT, jid, "audio", name)
@@ -131,6 +143,7 @@ def job_audio(jid: str, name: str):
 
 @app.get("/api/jobs/{jid}/video")
 def job_video(jid: str):
+    _check_job_id(jid)
     path = os.path.join(JOBS_ROOT, jid, "video.mp4")
     if not os.path.exists(path):
         raise HTTPException(404, "not found")
@@ -289,7 +302,7 @@ def render_ep(req: RenderReq):
     cfg = appconfig.load()
     theme = req.theme or cfg.get("style", "cartoon")
     engine = req.engine or cfg.get("engine", "auto")
-    jid = req.job_id or uuid.uuid4().hex[:12]
+    jid = _check_job_id(req.job_id) if req.job_id else uuid.uuid4().hex[:12]
     os.makedirs(os.path.join(JOBS_ROOT, jid), exist_ok=True)
     _set_job(jid, status="rendering", stage="starting", frac=0.0, kind="render")
     fps = max(12, min(60, req.fps))
