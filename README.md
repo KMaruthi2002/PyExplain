@@ -154,6 +154,18 @@ jobs/                  generated audio + videos (created at runtime)
 
 ---
 
+## Running the tests
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+The tests don't need API keys, ffmpeg or a browser. The same command runs in CI
+on every push and pull request.
+
+---
+
 ## Notes & tips
 
 - **No API key?** Turn narration off — you still get a fully animated video with
